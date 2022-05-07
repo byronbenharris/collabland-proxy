@@ -6,8 +6,9 @@ import Button from 'react-bootstrap/Button';
 import InputGroup from 'react-bootstrap/InputGroup';
 import styles from '../styles/home.module.css';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import * as web3 from '@solana/web3.js'
-import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
+// import * as web3 from '@solana/web3.js'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 export default function Home() {
@@ -21,25 +22,39 @@ export default function Home() {
 
     if (!publicKey) {
       alert('Please connect your wallet!');
-      return;
+      throw new WalletNotConnectedError();
     }
 
-    const encodedMsg = new TextEncoder().encode(proxy);
-    const signedMsg = await window.solana.signMessage(encodedMsg);
+    const transaction = new Transaction().add(
+        SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: Keypair.generate().publicKey,
+            lamports: 1,
+        })
+    );
+
+    const signature = await sendTransaction(transaction, connection);
+
+    await connection.confirmTransaction(signature, 'processed');
+
+    // const encoded = new TextEncoder().encode(proxy);
+    // const signed = await window.solana.signMessage(encoded, );
+    // const decoded = new TextDecoder().decode(signed.signature);
     
-    setSignature(signedMsg.signature);
+    setSignature(decoded);
     
     console.log({
       "message": proxy,
-      "signature": signature,
+      "public": publicKey,
+      "signature": decoded,
     });
   }
 
   return (
     <>
       <Head>
-        <title>collabland-proxytest</title>
-        <meta name="description" content="collabland-proxytest" />
+        <title>collabland-proxy</title>
+        <meta name="description" content="collabland-proxy" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -56,8 +71,8 @@ export default function Home() {
             <Form.Control 
               type="input"
               className={styles.input}
-              placeholder="Proxy Wallet Address" 
-              onChange={ (e) => setProxy(e.target.value) } 
+              placeholder="Proxy Wallet Address"
+              onChange={ (e) => setProxy(e.target.value) }
               disabled={!publicKey}
             />
           </Form.Group>
@@ -65,7 +80,7 @@ export default function Home() {
             type="button" 
             variant="primary"
             className ={styles.submit_btn} 
-            onClick={handleSubmit} 
+            onClick={handleSubmit}
             disabled={!publicKey}>
               Submit
           </Button>
