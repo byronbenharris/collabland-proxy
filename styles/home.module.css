@@ -46,3 +46,8 @@
 .collab_logo {
   margin-bottom: 1rem;
 }
+
+.codeblock {
+  margin-top: 1rem;
+  width: 600px;
+}

@@ -3,20 +3,17 @@ import Image from 'next/image';
 import { useState } from 'react';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
-import InputGroup from 'react-bootstrap/InputGroup';
 import styles from '../styles/home.module.css';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
-// import * as web3 from '@solana/web3.js'
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { CopyToClipboard } from 'react-copy-to-clipboard';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { encode } from 'base58-universal';
+import { CopyBlock, atomOneLight } from "react-code-blocks";
 
 export default function Home() {
 
   const [proxy, setProxy] = useState("");
   const [signature, setSignature] = useState("");
-  const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey } = useWallet();
 
   async function handleSubmit() {
 
@@ -25,27 +22,15 @@ export default function Home() {
       throw new WalletNotConnectedError();
     }
 
-    const transaction = new Transaction().add(
-        SystemProgram.transfer({
-            fromPubkey: publicKey,
-            toPubkey: Keypair.generate().publicKey,
-            lamports: 1,
-        })
-    );
-
-    const signature = await sendTransaction(transaction, connection);
-
-    await connection.confirmTransaction(signature, 'processed');
-
-    // const encoded = new TextEncoder().encode(proxy);
-    // const signed = await window.solana.signMessage(encoded, );
-    // const decoded = new TextDecoder().decode(signed.signature);
+    const encoded = new TextEncoder().encode(proxy);
+    const signed = await window.solana.signMessage(encoded, 'utf8');
+    const decoded = encode(signed.signature);
     
     setSignature(decoded);
     
     console.log({
-      "message": proxy,
-      "public": publicKey,
+      "proxy": proxy,
+      "public": publicKey.toString(),
       "signature": decoded,
     });
   }
@@ -85,13 +70,14 @@ export default function Home() {
               Submit
           </Button>
         </Form>
-        <InputGroup>
-          <InputGroup.Text>{signature}</InputGroup.Text>
-          <CopyToClipboard text={signature}>
-            <Button variant="outline-secondary">Copy</Button>
-          </CopyToClipboard>
-        </InputGroup>
-        
+        <div className={styles.codeblock}>
+          <CopyBlock
+            text={"{\n\t\"proxy\": \"" + proxy + "\",\n\t\"root\": \"" + publicKey.toString() + "\",\n\t\"signature\": \"" + signature + "\"\n}"}
+            theme={atomOneLight}
+            language="json"
+            wrapLines
+          />
+        </div>
       </main>
     </>
   )
